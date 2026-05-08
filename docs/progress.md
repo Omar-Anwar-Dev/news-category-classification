@@ -9,13 +9,12 @@
 _none yet_
 
 ## Completed Tasks
-_none yet_
+- [x] **S1-T1** [2026-05-08] GitHub repo + `.gitignore` + branch protection. Repo at https://github.com/Omar-Anwar-Dev/news-category-classification (public, default branch `main`). Verification: `git status --ignored` confirms `.env` / `kaggle.json` / `.claude/` excluded; branch-protection API returns `required_approving_review_count: 1`, `allow_force_pushes: false`, `required_conversation_resolution: true`.
 
 ## In Progress
-- [ ] **S1-T1** Create GitHub repo, `.gitignore`, branch protection — started 2026-05-08
+- [ ] **S1-T2** Pin baseline `requirements.txt` — starting next
 
 ## Next in Sprint
-- S1-T2 — Pin baseline `requirements.txt`
 - S1-T3 — Scaffold `src/` package + folder layout (hybrid: only `src/preprocessing.py`, rest in notebook)
 - S1-T4 — GitHub Actions CI (ruff + pytest)
 - S1-T5 — `data_loader.load_dataset()` with Kaggle download + cache
