@@ -1,20 +1,43 @@
-# Data and model artefacts (never tracked)
-data/
-models/
-reports/confusion/
+# =====================================================
+# Generated artefacts — never tracked
+# =====================================================
+
+# By extension (anywhere in the tree)
 *.npy
 *.npz
 *.joblib
 *.pkl
 *.parquet
 
+# Under data/ — keep only .gitkeep markers and the empty subdir layout
+/data/**/*
+!/data/.gitkeep
+!/data/raw/
+!/data/raw/.gitkeep
+!/data/processed/
+!/data/processed/.gitkeep
+!/data/embeddings/
+!/data/embeddings/.gitkeep
+
+# Under models/ — keep only .gitkeep
+/models/**/*
+!/models/.gitkeep
+
+# Under reports/confusion/ — keep only .gitkeep (PNGs are regeneratable)
+/reports/confusion/**/*
+!/reports/confusion/.gitkeep
+
+# =====================================================
 # Secrets
+# =====================================================
 kaggle.json
 .env
 .env.*
 !.env.example
 
+# =====================================================
 # Python
+# =====================================================
 __pycache__/
 *.py[cod]
 *$py.class
@@ -29,27 +52,37 @@ htmlcov/
 .tox/
 .mypy_cache/
 
+# =====================================================
 # Jupyter
+# =====================================================
 .ipynb_checkpoints/
 *.nbconvert.ipynb
 
+# =====================================================
 # Virtual environments
+# =====================================================
 .venv/
 venv/
 env/
 ENV/
 
+# =====================================================
 # IDE / editors
+# =====================================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
+# =====================================================
 # OS noise
+# =====================================================
 .DS_Store
 Thumbs.db
 desktop.ini
 
+# =====================================================
 # Claude Code session state
+# =====================================================
 .claude/

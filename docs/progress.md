@@ -11,9 +11,10 @@ _none yet_
 ## Completed Tasks
 - [x] **S1-T1** [2026-05-08] GitHub repo + `.gitignore` + branch protection. Repo at https://github.com/Omar-Anwar-Dev/news-category-classification (public, default branch `main`). Verification: `git status --ignored` confirms `.env` / `kaggle.json` / `.claude/` excluded; branch-protection API returns `required_approving_review_count: 1`, `allow_force_pushes: false`, `required_conversation_resolution: true`.
 - [x] **S1-T2** [2026-05-08] `requirements.txt` pinned with 21 dependencies (Python 3.10+). Includes the 14 stack packages from the plan plus `numpy`, `scipy`, `pyarrow`, `tqdm`, `python-dotenv`. Syntactic validation: file parses as valid pip-requirements format. Full install verification is deferred to S1-T6 setup (when the venv goes up to run pytest).
+- [x] **S1-T3** [2026-05-08] Scaffold per ADR-009 hybrid layout. Created `src/__init__.py`, `src/preprocessing.py` (stub), `tests/__init__.py`, `tests/test_smoke.py`, `notebooks/00_main.ipynb` (skeleton with 9 section headers covering S1-T5..T13), `notebooks/01_eda.ipynb` (skeleton), `pyproject.toml` (ruff + pytest config), 7 `.gitkeep` markers under `data/{,raw,processed,embeddings}/`, `models/`, `reports/{,confusion}/`. Updated `.gitignore` with negation patterns so `.gitkeep` files slip through `data/**/*` and `models/**/*` ignores. Verification: `python -c "import src"` returns OK; both notebooks parse as valid JSON; all 7 `.gitkeep` files report `TRACKED` under `git check-ignore`.
 
 ## In Progress
-- [ ] **S1-T3** Scaffold `src/` package + folder layout (per ADR-009 hybrid: only `src/preprocessing.py` + `tests/` as files; everything else in `notebooks/00_main.ipynb`)
+- [ ] **S1-T4** GitHub Actions CI: ruff lint + pytest smoke on every PR
 
 ## Next in Sprint
 - S1-T3 — Scaffold `src/` package + folder layout (hybrid: only `src/preprocessing.py`, rest in notebook)
