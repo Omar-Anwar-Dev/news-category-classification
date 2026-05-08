@@ -10,4 +10,5 @@ def test_can_import_src() -> None:
 
 def test_python_version_is_modern_enough() -> None:
     import sys
+
     assert sys.version_info >= (3, 10)
