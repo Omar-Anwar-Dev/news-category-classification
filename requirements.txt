@@ -2,11 +2,12 @@
 # Tested on Google Colab CPU/GPU runtime and on local Windows venv.
 # Re-run `pip install -r requirements.txt` after pulling.
 
-# Core scientific stack
-numpy==1.26.4
-scipy==1.14.1
-pandas==2.2.3
-pyarrow==18.1.0
+# Core scientific stack — numpy/scipy ranges allow Colab's pre-installed
+# numpy 2.x to satisfy them, avoiding the ABI-mismatch downgrade trap.
+numpy>=1.26,<3.0
+scipy>=1.13,<2.0
+pandas>=2.2,<3.0
+pyarrow>=18.0,<20.0
 
 # Classical ML
 scikit-learn==1.5.2
