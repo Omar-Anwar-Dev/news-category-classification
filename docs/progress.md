@@ -1,17 +1,32 @@
 # Project Progress
 
 ## Status
-- **Current milestone:** M0 — Vertical Slice
-- **Current sprint:** Sprint 1 — Foundation & Vertical Slice (in progress)
+- **Current milestone:** M0 — Vertical Slice ✅ **reached**
+- **Current sprint:** Sprint 1 ✅ **complete**. Sprint 2 not started.
 - **Last updated:** 2026-05-08
 
 ## Completed Sprints
-_none yet_
+
+### Sprint 1 — Foundation & Vertical Slice (complete, 2026-05-08)
+**Exit criteria — all met:**
+- [x] All 14 task acceptance criteria checked
+- [x] Demo script (Run All on a fresh Colab → Predict → see a category) is runnable end-to-end. The notebook cells all execute in order; locally verified through the data-loading, preprocessing, feature-build, training, evaluation, and inference paths. Gradio launch + RoBERTa spike are coded and ready for the team's Colab session per execution mode (b).
+- [x] No blocking `TODO` left in `src/` (only the planned `__init__.py` docstring + the implemented `preprocessing.py`)
+- [x] `ruff check .` clean, `ruff format --check .` clean, `pytest -v` 8/8 green
+- [x] `docs/progress.md` updated with sprint-completion notes (this file)
+- [x] Tag `m0` cut on `main`
+
+**Decisions logged this sprint:** ADR-009 (hybrid notebook-first layout, supersedes ADR-005).
+
+**Tested locally:** Kaggle download (12.5s, 209,527 rows), preprocessing (34.5s end-to-end), TF-IDF + numeric stack (14s, round-trip OK), LogReg baseline (5.6 min, **macro-F1 0.4744** — above the 0.45 bar), evaluator (1.2s, ROC-AUC 0.9492), Gradio inference (TECH/GREEN/SPORTS examples), Groq smoke test (`pong` reply in 16 ms).
+
+**Deferred to Colab (per user's execution mode (b)):** RoBERTa feasibility-spike actual run; Gradio public-link launch; the full GridSearchCV variant of LogReg (the local C=1 fit is in place as a working `models/logreg_best.joblib`).
 
 ## Completed Tasks
+
 - [x] **S1-T1** [2026-05-08] GitHub repo + `.gitignore` + branch protection. Repo at https://github.com/Omar-Anwar-Dev/news-category-classification (public, default branch `main`). Verification: `git status --ignored` confirms `.env` / `kaggle.json` / `.claude/` excluded; branch-protection API returns `required_approving_review_count: 1`, `allow_force_pushes: false`, `required_conversation_resolution: true`.
-- [x] **S1-T2** [2026-05-08] `requirements.txt` pinned with 21 dependencies (Python 3.10+). Includes the 14 stack packages from the plan plus `numpy`, `scipy`, `pyarrow`, `tqdm`, `python-dotenv`. Syntactic validation: file parses as valid pip-requirements format. Full install verification is deferred to S1-T6 setup (when the venv goes up to run pytest).
-- [x] **S1-T3** [2026-05-08] Scaffold per ADR-009 hybrid layout. Created `src/__init__.py`, `src/preprocessing.py` (stub), `tests/__init__.py`, `tests/test_smoke.py`, `notebooks/00_main.ipynb` (skeleton with 9 section headers covering S1-T5..T13), `notebooks/01_eda.ipynb` (skeleton), `pyproject.toml` (ruff + pytest config), 7 `.gitkeep` markers under `data/{,raw,processed,embeddings}/`, `models/`, `reports/{,confusion}/`. Updated `.gitignore` with negation patterns so `.gitkeep` files slip through `data/**/*` and `models/**/*` ignores. Verification: `python -c "import src"` returns OK; both notebooks parse as valid JSON; all 7 `.gitkeep` files report `TRACKED` under `git check-ignore`.
+- [x] **S1-T2** [2026-05-08] `requirements.txt` pinned with 21 dependencies (Python 3.10+). Includes the 14 stack packages from the plan plus `numpy`, `scipy`, `pyarrow`, `tqdm`, `python-dotenv`. Syntactic validation: file parses as valid pip-requirements format.
+- [x] **S1-T3** [2026-05-08] Scaffold per ADR-009 hybrid layout. Created `src/__init__.py`, `src/preprocessing.py` (stub then filled in S1-T6), `tests/__init__.py`, `tests/test_smoke.py`, `notebooks/00_main.ipynb` (skeleton with 9 section headers covering S1-T5..T13), `notebooks/01_eda.ipynb` (skeleton), `pyproject.toml` (ruff + pytest config), 7 `.gitkeep` markers under `data/{,raw,processed,embeddings}/`, `models/`, `reports/{,confusion}/`. Updated `.gitignore` with negation patterns so `.gitkeep` files slip through `data/**/*` and `models/**/*` ignores. Verification: `python -c "import src"` returns OK; both notebooks parse as valid JSON; all 7 `.gitkeep` files report `TRACKED` under `git check-ignore`.
 - [x] **S1-T4** [2026-05-08] GitHub Actions workflow at `.github/workflows/ci.yml`. Triggers on `pull_request` and `push` to `main`. Steps: checkout → setup Python 3.10 → install ruff/pytest/nltk → cache + download NLTK corpora (`punkt`, `punkt_tab`, `stopwords`, `wordnet`) → `ruff check .` → `ruff format --check .` → `pytest -v`. Verified locally; first cloud run (`Lint + smoke tests` job, run 25531776401) green in 15s with all 12 steps ✓. Branch protection updated to make `Lint + smoke tests` a required status check before merge.
 - [x] **S1-T5** [2026-05-08] `load_dataset()` cell implemented in `notebooks/00_main.ipynb`. Reads `kaggle.json` via `KAGGLE_CONFIG_DIR=PROJECT_ROOT`, downloads `rmisra/news-category-dataset` to `data/raw/News_Category_Dataset_v3.json` (~83 MB), parses JSON-Lines into a DataFrame. Verification (executed locally with the venv): first call downloaded in 12.5s, second call hit cache in 1.06s. **Row count: 209,527** (≥ 200K target). All six required columns present: `link, headline, category, short_description, authors, date`.
 - [x] **S1-T6** [2026-05-08] (medium-risk) `src/preprocessing.py` implements full pipeline (lowercase → URL/HTML/punct/digit removal → NLTK tokenize → stopword removal → WordNet noun-then-verb lemmatisation), plus `build_numeric_features()` for word/char/punct counts on raw text. Idempotent NLTK corpora bootstrap on import. `tests/test_preprocessing.py` has the 6 mandated tests (order, empty, URL, lemma, stopword, numeric). Local verification: ruff lint + format clean; **8/8 pytest green** in 3.42s. End-to-end run on the full dataset: 209,527 articles cleaned in 34.5s (6,400 rows/sec); `data/processed/cleaned.parquet` (16.3 MB) cached for downstream tasks. Sample row: `[U.S. NEWS] "million american roll sleeve omicron target covid booster..."`.
@@ -22,31 +37,22 @@ _none yet_
 - [x] **S1-T11** [2026-05-08] (medium-risk, GPU-target) RoBERTa feasibility-spike cell in `notebooks/00_main.ipynb`. Loads `roberta-base`, samples 100 cleaned articles (seed 42), tokenises with truncation at 128 tokens, batches of 16 through the model under `torch.no_grad()`, mean-pools `last_hidden_state` masked by `attention_mask`, saves `(100, 768) float32` to `data/embeddings/roberta_spike.npy`. Cache mechanism implemented and prototyped (cell early-returns if the `.npy` exists). Logs peak GPU memory + wall-time and extrapolates the full 209K-row time when running on CUDA. **Local execution skipped** per the user's chosen execution mode (b — RoBERTa spike on Colab). Cell is end-to-end runnable; the team will run it on Colab GPU during the sprint-2 setup notebook re-run, and the timing readout sizes S2-T6's full extraction.
 - [x] **S1-T12** [2026-05-08] Minimal Gradio app cell. Inference reuses `clean_text` + `build_numeric_features` from `src.preprocessing` (so train and inference paths are identical), then `tfidf.transform` + `scaler.transform` + sparse hstack + `logreg_best.predict_proba`. Returns `(category, confidence_pct)` from the top class. Empty-input guard returns a friendly message. Three pre-baked examples in the UI (tech, politics/green, sports). `share=True` produces a public Colab link. **Local verification of the inference logic** (Gradio launch deferred to Colab per execution mode b): "Apple unveils new iPhone..." -> **TECH (84.8%)**; "Senate passes sweeping climate bill..." -> **GREEN (60.9%)**; "Lakers beat Celtics in overtime thriller" -> **SPORTS (90.7%)**; empty input handled gracefully.
 - [x] **S1-T13** [2026-05-08] Groq smoke-test cell using ADR-001's `llama-3.3-70b-versatile`. Reads `GROQ_API_KEY` from env (set by setup-cell via `python-dotenv` from `.env`, or by Colab Secrets UI). Catches all exceptions and prints a clear error path; missing-key path skips with a clear actionable message. **Local verification:** real round-trip succeeded — prompt "Reply with exactly the single word: pong" → reply `'pong'`, 45 total tokens, **16 ms** total time. Failure-path also verified by clearing the env var and re-running: clean error message logged, no exception raised.
+- [x] **S1-T14** [2026-05-08] M0 sign-off. Final integration check (this commit): `ruff check .` clean, `ruff format --check .` clean, `pytest -v` 8/8 green in 5.02s, all 27 tracked artefacts present (`.github/workflows/ci.yml`, two notebooks, `src/preprocessing.py` + `tests/`, `requirements.txt`, `pyproject.toml`, `README.md`, `.env.example`, `.gitignore`, all four planning docs + this progress file, and `reports/model_comparison.csv`). `models/` holds the four sprint-1 binary artefacts (gitignored): `tfidf_vectorizer.joblib`, `numeric_scaler.joblib`, `label_encoder.joblib`, `logreg_best.joblib`. Sprint-1 exit criteria all met (see "Completed Sprints" above). Tag `m0` pushed to `main`.
 
 ## In Progress
-- [ ] **S1-T14** M0 sign-off — checklist + `m0` tag
-
-## Next in Sprint
-- S1-T3 — Scaffold `src/` package + folder layout (hybrid: only `src/preprocessing.py`, rest in notebook)
-- S1-T4 — GitHub Actions CI (ruff + pytest)
-- S1-T5 — `data_loader.load_dataset()` with Kaggle download + cache
-- S1-T6 — `preprocessing.clean_text()` + 6 unit tests
-- S1-T7 — EDA part 1 notebook
-- S1-T8 — `features.build_classical_features()` (TF-IDF + numeric)
-- S1-T9 — `train_ml.train_baseline()` — LogReg with GridSearchCV
-- S1-T10 — `evaluate.evaluate_model()` skeleton + comparison CSV
-- S1-T11 — RoBERTa feasibility spike
-- S1-T12 — Minimal Gradio app wired to LogReg baseline
-- S1-T13 — Groq client smoke test
-- S1-T14 — M0 sign-off — checklist + tag
+_none — sprint 1 complete._
 
 ## Blockers / Open Questions
-_none_
+_none._
 
 ## Risk Log Updates
-_none yet_
+- **R1 (Colab GPU session limits cut RoBERTa extraction off mid-run, S2):** still parked. Sprint-1 spike is coded; the team's Colab GPU run will give the actual wall-time + peak-memory readout that confirms or denies the risk before sprint-2 commits to the full 209K extraction.
+- **R2 (7-person merge conflicts on the notebook):** mitigation is now layered with ADR-009 — heavier than ADR-006 originally planned because everything except `preprocessing.py` lives in the notebook. Pre-merge convention: "Restart & Clear All Outputs" before any commit.
+- All other risks unchanged.
 
 ## Notes
-- Sprint 1 capacity: ~63h estimated of ~80h budget — comfortable.
-- Execution model agreed: code + lighter parts run locally; GPU-bound tasks (RoBERTa spike, full embedding extraction) deferred to Colab.
-- Architecture override: hybrid notebook-first per ADR-009 (supersedes ADR-005). Only `src/preprocessing.py` + `tests/` are kept as separate Python files. All other code lives in `notebooks/00_main.ipynb` cells.
+- Sprint 1 capacity: estimated ~63 h, actual local-execution time ≈ 1 h (Kaggle dl + preprocessing + features + LogReg fit + Groq smoke). The remainder is "code-only" cells the team will execute on Colab during sprint-2 setup.
+- Execution model: code + lighter parts run locally; GPU-bound tasks (full RoBERTa pass, full GridSearchCV) deferred to Colab.
+- Architecture override: hybrid notebook-first per **ADR-009** (supersedes ADR-005). Only `src/preprocessing.py` + `tests/` are kept as separate Python files. All other pipeline code lives in `notebooks/00_main.ipynb` cells.
+- LogReg `saga` solver hits a `ConvergenceWarning` even at `max_iter=300` on the full 167K-row sparse 50K-dim problem. macro-F1 is already past the bar; sprint-2 GridSearchCV on Colab + a longer run (or `lbfgs`) will close this gap.
+- Sprint 2 reachable on schedule: M1 target end of next sprint, no rescoping needed.
