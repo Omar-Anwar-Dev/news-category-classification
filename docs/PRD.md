@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-This project builds an end-to-end **multi-class text classification system** that assigns one of **42 news categories** to a news article using its **headline** and **short description**. It is delivered as a runnable Google Colab notebook plus a Gradio demo and is built against the spec in `Docs/news_category_classification.pdf`.
+This project builds an end-to-end **multi-class text classification system** that assigns one of **27 consolidated news categories** to a news article using its **headline** and **short description** (originally 42 raw labels in the dataset; near-duplicates merged per **ADR-010**, e.g. `STYLE & BEAUTY`→`STYLE`, `THE WORLDPOST`+`POLITICS`+`WORLDPOST`→`POLITICS_WORLD`). It is delivered as a runnable Google Colab notebook plus a Gradio demo and is built against the spec in `docs/news_category_classification.pdf`.
 
 The system is the deliverable for an academic Data Science course (Level 4) and is built by a **7-person student team** over **~4 weeks**. It is not a commercial product; "users" here means the demo audience (course staff and peers) plus the team itself.
 
@@ -20,15 +20,15 @@ Deliver a complete, reproducible news-category classifier that satisfies every c
 | # | Criterion | Target |
 |---|---|---|
 | 1 | All 6 classical models trained, tuned, and reported in a comparison table | 100% present |
-| 2 | Best classical model **macro-F1** on held-out test set | ≥ 0.55 |
-| 3 | Best classical model **weighted-F1** on held-out test set | ≥ 0.65 |
-| 4 | RoBERTa + Linear-SVM model trained and reported | present, macro-F1 ≥ 0.60 |
+| 2 | Best classical model **macro-F1** on held-out test set | ≥ 0.60 |
+| 3 | Best classical model **weighted-F1** on held-out test set | ≥ 0.70 |
+| 4 | Fine-tuned RoBERTa model in the comparison table | present, accuracy ≥ 0.70, macro-F1 ≥ 0.65 |
 | 5 | Gradio demo launches end-to-end on a fresh Colab runtime | < 10 min from `Run All` |
 | 6 | LLM explanation returns a coherent 2-3 sentence rationale | ≥ 9 / 10 hand-rated samples |
 | 7 | Notebook re-runs cleanly with no manual intervention beyond providing API keys | reproducible |
 | 8 | All 4 deliverables exist: notebook, Gradio app, slides, written report, README | 100% delivered |
 
-Macro-F1 thresholds reflect that 42-class news classification with TF-IDF typically reaches 0.55–0.65 macro-F1 in the literature; these are realistic stretch targets, not arbitrary.
+Targets revised after ADR-010 (category consolidation 42→27) and ADR-011 (use fine-tuned RoBERTa from coordinator's prior work). On the 27-class merged setup, classical TF-IDF baselines reach 0.60–0.67 macro-F1 in measured prior runs, and a fine-tuned `roberta-base` reaches ~0.70 accuracy. The numbers are calibrated to those measurements, not arbitrary.
 
 ### Non-goals
 
@@ -145,13 +145,15 @@ Accuracy, Precision, Recall, F1 (macro and weighted), ROC-AUC (one-vs-rest), per
   - Comparison table also rendered in the notebook as a styled DataFrame.
 - **Out of scope:** statistical significance testing.
 
-#### F7 — RoBERTa embeddings + Linear SVM (Bonus)
-Sentence → `roberta-base` → mean-pooled 768-d vector → LinearSVC.
-- **Stories served:** Grader (bonus completeness)
+#### F7 — Fine-tuned RoBERTa for sequence classification (Bonus)
+Per **ADR-011** (supersedes ADR-003), the deep-model bonus is a **fine-tuned `RobertaForSequenceClassification`** over the 27 consolidated classes. Sourced from the team coordinator's prior individual work on the same dataset (~70% test accuracy); attribution made explicit in the report and slide deck.
+- **Stories served:** Grader (bonus completeness, accuracy)
 - **Acceptance criteria:**
-  - Embeddings cached to `data/embeddings/roberta.npy`; second run loads from cache.
-  - LinearSVC scored using the same evaluation suite as F6 and added to the comparison table.
-- **Out of scope:** RoBERTa fine-tuning; alternative pooling experiments.
+  - Model package downloaded from Google Drive (`gdown` keyed by `FILE_ID` in ADR-012), unzipped to `models/best_model/`, and loaded via `AutoModelForSequenceClassification.from_pretrained()`.
+  - Evaluated using the same metric suite as F6 (accuracy, precision, recall, F1 macro+weighted, ROC-AUC OvR) and added to the comparison table.
+  - Test-set accuracy ≥ 0.70 and macro-F1 ≥ 0.65.
+  - Reproducibility: a markdown cell in the notebook documents the fine-tuning recipe (CATEGORY_MAP, Trainer hyper-parameters, train/test split) so the result is auditable.
+- **Out of scope:** Re-training on Colab free tier (deferred — see ADR-011 for rationale); alternative architectures (DistilBERT, BERT-large).
 
 #### F8 — LLM explanations (Bonus)
 Groq Llama 3.3 70B generates a 2-3 sentence rationale for a predicted category, using the spec's prompt template.

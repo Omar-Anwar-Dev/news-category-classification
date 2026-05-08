@@ -1,9 +1,16 @@
 # Project Progress
 
 ## Status
-- **Current milestone:** M0 — Vertical Slice ✅ **reached**
-- **Current sprint:** Sprint 1 ✅ **complete**. Sprint 2 not started.
+- **Current milestone:** M1 — Feature Complete (in progress)
+- **Current sprint:** Sprint 2 — Feature Complete (kicked off 2026-05-08; in progress)
 - **Last updated:** 2026-05-08
+
+## Sprint 2 kickoff notes (2026-05-08)
+Major scope change agreed by the team coordinator at the sprint-2 kickoff phase:
+1. **ADR-010** — consolidate categories from 42 → 27 (CATEGORY_MAP lifted from coordinator's prior project) + drop short / duplicate rows.
+2. **ADR-011** (supersedes ADR-003) — use the coordinator's pre-existing fine-tuned `RobertaForSequenceClassification` model (~70% accuracy) as the project's primary classifier, with explicit attribution in the report.
+3. **ADR-012** — store the model on Google Drive (FILE_ID `19EIWqmmR4tbJrMyiqKYRT__s_d1n11rW`) and download via `gdown`.
+PRD updates: §1 (42 → 27 classes), §2 success metrics raised to match measured prior performance (best-classical macro-F1 ≥ 0.60, weighted-F1 ≥ 0.70; fine-tuned RoBERTa accuracy ≥ 0.70 / macro-F1 ≥ 0.65). Sprint-2 plan rewritten: old S2-T6 (full RoBERTa extraction) and S2-T7 (LinearSVC on embeddings) retired in favour of the new S2-T2 (Drive download) + S2-T8 (evaluate). Verified course policy permits reuse with attribution.
 
 ## Completed Sprints
 

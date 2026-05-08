@@ -100,77 +100,84 @@ Mapping from PRD §9 to sprints:
 
 ---
 
-## Sprint 2 — Feature Complete (10 days)
+## Sprint 2 — Feature Complete (10 days) — REVISED 2026-05-08
 
-**Goal:** Replace placeholders with the real thing. Train and tune the remaining 5 classical models, run RoBERTa embedding extraction over the full dataset, train the embedding-based classifier, wire the real Groq LLM and similarity retriever into the Gradio app, and finish all EDA charts.
+**Scope-change note:** ADRs 010, 011, 012 (logged at sprint-2 kickoff) consolidate categories from 42→27, replace the frozen-RoBERTa+LinearSVC bonus with the team coordinator's pre-trained fine-tuned RoBERTa, and put the model on Google Drive instead of cached embeddings. Old S2-T6 (full embedding extraction) and old S2-T7 (LinearSVC on embeddings) are retired in favour of S2-T2 (download + load) and S2-T8 (evaluate). The remaining classical models, EDA, LLM, retrieval, and Gradio tasks survive — they just train against the 27-class label space.
 
-**Demo-able deliverable at sprint end:** Same Gradio app as M0, but now: best-of-7 model is selected automatically, the UI shows predicted category + confidence + an LLM-generated explanation + 3 similar articles. The model-comparison table is finalised and confusion matrices are saved.
+**Goal:** Five classical models trained and tuned on the 27-class merged dataset, plus the fine-tuned RoBERTa loaded from Drive and evaluated; full Gradio UI with LLM explanations + similarity retrieval; full EDA part 2.
 
-**Estimated capacity used:** ~82h of ~80h budget. Tight; trim if needed.
+**Demo-able deliverable at sprint end:** Gradio app with predicted category + confidence + Groq-generated explanation + top-3 similar articles. Best-of-7 model auto-selected from `model_comparison.csv`. 7 confusion-matrix PNGs saved.
+
+**Estimated capacity used:** ~80h of ~80h budget.
 
 ### Tasks (in execution order)
 
-- **S2-T1** [L] Train + tune **Linear SVM** (`LinearSVC` wrapped in `CalibratedClassifierCV`) with grid over `C`; persist; eval row added
-  - Acceptance: `models/linsvm_best.joblib` saved; calibrated probabilities sum to 1; comparison row added; macro-F1 reported
+- **S2-T1** [S] **Apply CATEGORY_MAP** in the data-loading + preprocessing cells: 42→27 labels per ADR-010, drop rows whose cleaned text is <4 words, drop exact duplicates. Re-fit `LabelEncoder` against the 27 labels. Persist the new `data/processed/cleaned.parquet`.
+  - Acceptance: cleaned DataFrame has exactly 27 unique categories; row count ≈ 207K; `models/label_encoder.joblib` updated; sprint-1 LogReg cell re-runs against 27 classes (sanity check that the pipeline still works) and macro-F1 ≥ 0.60.
   - Dependencies: S1 complete
   - Risk: low
-- **S2-T2** [L] Train + tune **KNN** with `RandomizedSearchCV` over `n_neighbors ∈ {3,5,7,11,21}`, weights ∈ {uniform, distance}
-  - Acceptance: `models/knn_best.joblib` saved; comparison row added; explicit note in the comparison table about KNN's poor scaling at this size
-  - Dependencies: S1 complete
-  - Risk: medium — KNN inference may be slow; pre-compute distance index if needed
-- **S2-T3** [L] Train + tune **Decision Tree** with grid over `max_depth`, `min_samples_leaf`; persist
-  - Acceptance: `models/dt_best.joblib`; comparison row; tree depth + leaf count logged
-  - Dependencies: S1 complete
+- **S2-T2** [M] **Download fine-tuned RoBERTa from Drive** (FILE_ID `19EIWqmmR4tbJrMyiqKYRT__s_d1n11rW`) into `models/best_model/`, load with `AutoTokenizer.from_pretrained()` + `AutoModelForSequenceClassification.from_pretrained()`. Cache mechanism: skip download if `models/best_model/config.json` exists.
+  - Acceptance: model loads on a fresh Colab; `model.config.num_labels == 27`; predicting on a 5-row test sample produces sensible categories.
+  - Dependencies: S2-T1
+  - Risk: medium — depends on Drive availability and the FILE_ID staying public.
+- **S2-T3** [L] Train + tune **Linear SVM** (`LinearSVC` wrapped in `CalibratedClassifierCV`) with grid over `C` on the 27-class data; persist; eval row added.
+  - Acceptance: `models/linearsvc_best.joblib` saved; calibrated probabilities sum to 1; comparison row added; macro-F1 ≥ 0.60 (PRD §2 target).
+  - Dependencies: S2-T1
   - Risk: low
-- **S2-T4** [L] Train + tune **Random Forest** with `RandomizedSearchCV` over `n_estimators ∈ {100,200,400}`, `max_depth`, `class_weight='balanced'`
-  - Acceptance: `models/rf_best.joblib`; comparison row; OOB score logged
-  - Dependencies: S1 complete
-  - Risk: medium — long training; may need to subsample for tuning then refit on full
-- **S2-T5** [L] Train + tune **AdaBoost** with grid over `n_estimators` and `learning_rate`
-  - Acceptance: `models/adaboost_best.joblib`; comparison row
-  - Dependencies: S1 complete
+- **S2-T4** [L] Train + tune **KNN** with `RandomizedSearchCV` over `n_neighbors ∈ {3,5,7,11,21}`, `weights ∈ {uniform, distance}`.
+  - Acceptance: `models/knn_best.joblib` saved; comparison row added; note KNN's poor scaling in the comparison table.
+  - Dependencies: S2-T1
+  - Risk: medium — slow inference at this scale.
+- **S2-T5** [L] Train + tune **Decision Tree** with grid over `max_depth`, `min_samples_leaf`; persist.
+  - Acceptance: `models/decision_tree_best.joblib`; comparison row; tree depth + leaf count logged.
+  - Dependencies: S2-T1
   - Risk: low
-- **S2-T6** [L] **Compute RoBERTa embeddings on the full dataset** in batches with `torch.no_grad()`, mean-pool, cache `(N, 768)` `float32` to `data/embeddings/roberta.npy` along with a parallel index parquet
-  - Acceptance: cache file produced; second run is a cache load (< 30 s); peak GPU memory + total wall-time logged in the notebook
-  - Dependencies: S1-T11
-  - Risk: high — Colab GPU session limits are the top project risk. Mitigation: subsample fallback to 100K stratified rows if 200K hits the wall; document the choice
-- **S2-T7** [M] Train **LinearSVC on RoBERTa embeddings** with the same train/test split
-  - Acceptance: `models/roberta_svc_best.joblib`; comparison row added; macro-F1 ≥ 0.60 (target from PRD §2)
-  - Dependencies: S2-T6
+- **S2-T6** [L] Train + tune **Random Forest** with `RandomizedSearchCV` over `n_estimators ∈ {100,200,400}`, `max_depth`, `class_weight='balanced'`.
+  - Acceptance: `models/rf_best.joblib`; comparison row; OOB score logged.
+  - Dependencies: S2-T1
+  - Risk: medium — long training; may need to subsample for tuning, refit best params on full.
+- **S2-T7** [L] Train + tune **AdaBoost** with grid over `n_estimators` and `learning_rate`.
+  - Acceptance: `models/adaboost_best.joblib`; comparison row.
+  - Dependencies: S2-T1
   - Risk: low
-- **S2-T8** [M] Finalise the **comparison table** + save 7 confusion-matrix PNGs (one per model); add a styled DataFrame view to the notebook
-  - Acceptance: `reports/model_comparison.csv` has 7 rows × 7 metric columns; 7 PNGs in `reports/confusion/`; the notebook renders the table with the best model highlighted
-  - Dependencies: S2-T1 to S2-T7
+- **S2-T8** [M] **Evaluate fine-tuned RoBERTa** (loaded in S2-T2) on the same held-out test set. Run inference in batches under `torch.no_grad()`, run the standard metric suite (`evaluate_model()` from S1-T10), append a row labelled `roberta_finetuned` to `reports/model_comparison.csv`.
+  - Acceptance: comparison row added; **accuracy ≥ 0.70**, **macro-F1 ≥ 0.65** (PRD §2 criterion 4); confusion-matrix PNG `reports/confusion/roberta_finetuned.png` saved.
+  - Dependencies: S2-T1, S2-T2
+  - Risk: low — the model is pre-trained.
+- **S2-T9** [M] Finalise the **comparison table** with all 7 rows (LogReg from sprint 1 + 5 sprint-2 classical + RoBERTa fine-tuned). Re-render the styled DataFrame in the notebook with the best model highlighted. Save 7 confusion-matrix PNGs in `reports/confusion/`.
+  - Acceptance: `reports/model_comparison.csv` has 7 rows × 7 metric columns; 7 PNGs present; styled table in the notebook visually picks the best.
+  - Dependencies: S2-T3 through S2-T8
   - Risk: low
-- **S2-T9** [L] Full **EDA part 2** in `notebooks/01_eda.ipynb`: numeric distributions (histograms), boxplots, correlation heatmap, token-length distribution, top-20 most frequent words, n-gram analysis (top 20 bi-grams + tri-grams), word cloud (optional but include), outlier visualisation, skewness check, scaling-need check, noise/anomaly inspection
-  - Acceptance: every checkbox in spec §"Visualization & Analysis" rendered; each chart has a 1–2 line interpretation cell underneath
-  - Dependencies: S1-T7
+- **S2-T10** [L] Full **EDA part 2** in `notebooks/01_eda.ipynb` against the 27-class data: numeric distributions (histograms), boxplots, correlation heatmap, token-length distribution, top-20 most frequent words, n-gram analysis (top 20 bi-grams + tri-grams), word cloud, outlier visualisation, skewness check, scaling-need check, noise/anomaly inspection.
+  - Acceptance: every checkbox in spec §"Visualization & Analysis" rendered; each chart has a 1–2 line interpretation cell underneath.
+  - Dependencies: S2-T1
   - Risk: low
-- **S2-T10** [M] **Real Groq LLM integration** in `src/llm.py`: prompt template from spec, Groq SDK call, in-process `lru_cache`, network/error handling
-  - Acceptance: `explain(text, label, confidence)` returns a clean 2–3 sentence string for 9/10 hand-rated samples; errors return a friendly placeholder; cache hit rate verified in a unit test
+- **S2-T11** [M] **Real Groq LLM integration**: prompt template from spec, Groq SDK call, in-process `lru_cache` keyed by `(sha1(text)[:16], label)`, network/error handling.
+  - Acceptance: `explain(text, label, confidence)` returns a clean 2–3 sentence string for 9/10 hand-rated samples; errors return a friendly placeholder; cache hit rate verified.
   - Dependencies: S1-T13
-  - Risk: medium — rate limit handling, prompt quality
-- **S2-T11** [M] **Similarity retriever** in `src/retrieval.py`: cosine over the cached RoBERTa matrix, top-k by score
-  - Acceptance: `top_k(query_text, k=3)` returns `[(headline, category, score), ...]` in < 200 ms
-  - Dependencies: S2-T6
-  - Risk: low
-- **S2-T12** [L] **Gradio app — full version**: select best model from `model_comparison.csv`, show category + confidence (%) + LLM explanation + top-3 similar articles; loading spinner; graceful error UI
-  - Acceptance: end-to-end inference on warm runtime < 5 s including LLM; on Groq error the UI degrades gracefully (placeholder explanation, rest still renders)
-  - Dependencies: S2-T8, S2-T10, S2-T11
+  - Risk: medium — rate-limit handling, prompt quality.
+- **S2-T12** [M] **Similarity retriever**: at startup, run the fine-tuned model's encoder over the (cleaned) training set, mean-pool last hidden states, cache `(N, 768)` to `data/embeddings/roberta_finetuned.npy` + a parallel `index.parquet` of `(headline, category)`. `top_k(query_text, k=3)` cosine-ranks against the cache.
+  - Acceptance: cache file produced (~600 MB); `top_k` returns `[(headline, category, score), ...]` in < 200 ms after cache load.
+  - Dependencies: S2-T2
+  - Risk: medium — embedding pass over 207K rows on Colab T4 takes ~30-45 min on first run; cached after that.
+- **S2-T13** [L] **Gradio app — full version**: select best model from `model_comparison.csv` (will pick `roberta_finetuned`), show category + confidence (%) + LLM explanation + top-3 similar articles; loading spinner; graceful error UI.
+  - Acceptance: end-to-end inference on warm runtime < 5 s including LLM; on Groq error the UI degrades gracefully (placeholder explanation, rest still renders).
+  - Dependencies: S2-T9, S2-T11, S2-T12
   - Risk: medium
-- **S2-T13** [M] **Integration test** — full notebook re-runs on a fresh Colab from a teammate's account: pulls data, runs preprocessing, loads cached models + embeddings, launches Gradio
-  - Acceptance: time-to-Gradio-link recorded; under 60 minutes cold-start; under 5 minutes warm
-  - Dependencies: S2-T12
-  - Risk: medium — first time the whole pipeline runs as one
-- **S2-T14** [S] M1 sign-off — feature checklist verified against PRD §5 MVP; tag `m1` cut on `main`
-  - Acceptance: every MVP feature F1–F11 has its acceptance criteria checked; sign-off committed to `docs/progress.md`
+- **S2-T14** [M] **Integration test** — full notebook re-runs on a fresh Colab from a teammate's account: bootstrap → category map → Drive download → classical training → RoBERTa eval → Gradio launch.
+  - Acceptance: time-to-Gradio-link recorded; under 90 minutes cold-start; under 10 minutes warm.
+  - Dependencies: S2-T13
+  - Risk: medium
+- **S2-T15** [S] M1 sign-off — feature checklist verified against PRD §5 MVP; tag `m1` cut on `main`.
+  - Acceptance: every MVP feature F1–F11 has its acceptance criteria checked; sign-off committed to `docs/progress.md`.
   - Dependencies: all S2 tasks
   - Risk: low
 
 ### Sprint 2 exit criteria
-- All MVP features (F1 through F11) verified against their PRD acceptance criteria ✅
-- 7 trained models on disk, 7 rows in the comparison table, 7 confusion-matrix PNGs
-- Notebook runs end-to-end on a fresh Colab without manual fixes
+- All MVP features (F1–F11) verified against their PRD acceptance criteria ✅
+- 7 trained models in `models/` (5 new sprint-2 classical + S1 LogReg + RoBERTa fine-tuned downloaded), 7 rows in the comparison table, 7 confusion-matrix PNGs
+- 27-class label space throughout; sprint-1 logreg row in the comparison table re-evaluated on 27 classes
+- Notebook runs end-to-end on a fresh Colab without manual fixes (with `kaggle.json` + `GROQ_API_KEY` provided)
 - Gradio app shows all four output components live
 - `docs/progress.md` updated; tag `m1` pushed
 

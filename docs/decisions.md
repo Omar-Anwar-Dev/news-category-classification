@@ -39,7 +39,7 @@ Append-only record of non-trivial product and technical decisions made during pl
 
 ## ADR-003: Use frozen RoBERTa embeddings + LinearSVC, not fine-tuned RoBERTa
 **Date:** 2026-05-08
-**Status:** Accepted
+**Status:** Superseded by ADR-011 (2026-05-08)
 
 **Context:** The spec's bonus pipeline diagram is "Sentence → BERT → 768-dim vector → SVM classifier" — pre-trained embeddings, not fine-tuning. The team has 1 month, a non-trivial classical workstream, and Colab free-tier GPU.
 
@@ -151,3 +151,99 @@ Append-only record of non-trivial product and technical decisions made during pl
 - Higher merge-conflict risk on the notebook with 7 contributors. Mitigation: section-ownership per teammate (each owns a contiguous block of cells), agreed cell order frozen early, and a pre-merge convention of running "Restart & Clear All Outputs" before commit so cell metadata stays minimal.
 - Implementation plan S1-T3 is rescoped: instead of scaffolding 9 modules, create `src/preprocessing.py` + `src/__init__.py` + `tests/test_preprocessing.py` + `notebooks/00_main.ipynb` skeleton + the empty data/model/reports placeholder dirs.
 - Downstream tasks (S1-T5, S1-T8 to S1-T13) implement their logic as cells in `00_main.ipynb` rather than as `src/*.py` modules. Acceptance criteria for those tasks remain functionally identical (same outputs, same artefacts on disk); only the file location changes.
+
+---
+
+## ADR-010: Category consolidation — 42 → 27 classes
+**Date:** 2026-05-08
+**Status:** Accepted
+
+**Context:** The raw News Category Dataset has 42 labels, several of which are near-duplicates of each other (`ARTS` / `ARTS & CULTURE` / `CULTURE & ARTS`; `STYLE` / `STYLE & BEAUTY`; `WORLDPOST` / `THE WORLDPOST`; `PARENTS` / `PARENTING`; `WELLNESS` / `HEALTHY LIVING`; `TECH` / `SCIENCE`; etc.). Sprint 1's 42-class TF-IDF baseline reached 55% accuracy with a large fraction of errors being inter-near-duplicate confusions, visible directly in the confusion-matrix PNG. Prior individual work by the team coordinator on the same dataset showed that consolidating these duplicates lifts classical models from ~55% to ~66% accuracy and brings them past the spec's macro-F1 target.
+
+**Decision:** Apply a fixed category remap before training. Final 27 classes:
+
+```
+ARTS, BLACK VOICES, BUSINESS, COMEDY, CRIME, DIVORCE, EDUCATION, ENTERTAINMENT,
+ENVIRONMENT, FAMILY, FIFTY, FOOD, GOOD NEWS, HEALTH, HOME & LIVING, IMPACT,
+LATINO VOICES, POLITICS_WORLD, QUEER VOICES, RELIGION, SCI_TECH, SPORTS, STYLE,
+TRAVEL, U.S. NEWS, WEDDINGS, WORLD NEWS
+```
+
+Mapping:
+
+```python
+CATEGORY_MAP = {
+    "STYLE & BEAUTY": "STYLE",
+    "THE WORLDPOST": "POLITICS_WORLD", "WORLDPOST": "POLITICS_WORLD", "POLITICS": "POLITICS_WORLD",
+    "WELLNESS": "HEALTH", "HEALTHY LIVING": "HEALTH",
+    "TASTE": "FOOD", "FOOD & DRINK": "FOOD",
+    "ARTS": "ARTS", "CULTURE & ARTS": "ARTS", "ARTS & CULTURE": "ARTS",
+    "COLLEGE": "EDUCATION", "EDUCATION": "EDUCATION",
+    "SCIENCE": "SCI_TECH", "TECH": "SCI_TECH",
+    "GREEN": "ENVIRONMENT", "ENVIRONMENT": "ENVIRONMENT",
+    "MONEY": "BUSINESS", "BUSINESS": "BUSINESS",
+    "WOMEN": "FAMILY", "PARENTS": "FAMILY", "PARENTING": "FAMILY",
+    "CRIME": "CRIME", "WEIRD NEWS": "CRIME",
+    "MEDIA": "ENTERTAINMENT", "ENTERTAINMENT": "ENTERTAINMENT",
+    "STYLE": "STYLE",
+}
+KEEP_AS_IS = {"SPORTS", "TRAVEL", "RELIGION", "COMEDY", "QUEER VOICES", "BLACK VOICES",
+              "DIVORCE", "FIFTY", "GOOD NEWS", "HOME & LIVING", "IMPACT", "LATINO VOICES",
+              "U.S. NEWS", "WEDDINGS", "WORLD NEWS"}
+MIN_SAMPLES_PER_CLASS = 1000
+```
+
+Apply in addition: drop rows with cleaned text < 4 words; drop exact duplicates. Final dataset size: ~206,960 rows.
+
+**Alternatives considered:**
+- Keep all 42 — accuracy capped at ~55% baseline, ~62-65% with frozen RoBERTa. Below the team's 70% target.
+- Auto-cluster categories by name embeddings — non-deterministic and harder to defend in the report.
+- Hierarchical labelling (keep both fine + coarse) — out of scope; complicates training and inference.
+
+**Consequences:** PRD §1 changes from "42 categories" to "27 consolidated categories"; defended in the written report by showing the inter-near-duplicate confusions in the sprint-1 confusion matrix. The 27-class formulation is the project's official problem statement from this point on. All models (classical + fine-tuned) train and report against the 27-class label space.
+
+---
+
+## ADR-011: Reuse fine-tuned RoBERTa from coordinator's prior work — supersedes ADR-003
+**Date:** 2026-05-08
+**Status:** Accepted; supersedes ADR-003
+
+**Context:** ADR-003 originally chose frozen `roberta-base` embeddings + `LinearSVC` for the deep-model bonus, citing time and Colab GPU constraints. Discovered during sprint-1 closing review that the team coordinator has a fully fine-tuned `RobertaForSequenceClassification` model from a prior individual project on the same dataset, hitting ~70% top-1 accuracy on the 27-class merged setup. Re-training from scratch on Colab free tier (no Pro subscription) is infeasible within sprint 2 — a single 3-epoch fine-tune on 207K rows takes 8-15 hours of GPU and routinely hits Colab's idle / max-runtime disconnects. Frozen embeddings would only reach ~62-65% accuracy, below the 70% target.
+
+**Decision:** Use the coordinator's existing fine-tuned model (`best_model/`, 498 MB, ~70% accuracy, classes match ADR-010's 27) as the project's primary classifier. The Gradio app's `BEST_MODEL` constant points to it; the model-comparison table includes it as the "RoBERTa-tuned" row alongside the six classical models the team trains from scratch.
+
+**Alternatives considered:**
+- Re-train RoBERTa from scratch with the team — risks Colab session timeouts; lower-quality model on a 50-100K subset; eats most of sprint 2's capacity.
+- Stick with frozen RoBERTa + LinearSVC (original ADR-003) — gives ~62-65%; misses the 70% target.
+- Skip the deep-model path entirely — sacrifices F7 bonus and a major part of the project's grade.
+- Train on a subset (e.g. 80K rows, 2 epochs, distilroberta-base) — feasible on free tier in ~2-3 hours but yields ~67-69%; below target.
+
+**Consequences:**
+- F7 reframed: "Fine-tuned RoBERTa-base for sequence classification (27 classes)" instead of "frozen embeddings + LinearSVC".
+- Methodology disclosed transparently in the written report and the slide deck: "the fine-tuned RoBERTa is the result of pre-project individual work by the team coordinator; the team's contributions in this delivery span dataset preparation with category consolidation, six classical ML models trained from scratch with hyper-parameter tuning, the full evaluation suite, comprehensive EDA part 2, Groq LLM integration with caching, similarity retrieval, the full Gradio interface, the written report, and demo rehearsal."
+- Course policy on reuse with attribution confirmed by coordinator (syllabus reviewed sprint-2 kickoff, 2026-05-08).
+- The full fine-tuning recipe (CATEGORY_MAP + Trainer hyper-parameters from `training_args.bin`) is documented in a markdown cell in the notebook for reproducibility, even though the team will not re-run it.
+- PRD §2 success criterion 4 raised from "RoBERTa+SVC macro-F1 ≥ 0.60" to "Fine-tuned RoBERTa accuracy ≥ 0.70, macro-F1 ≥ 0.65" — based on the prior model's actual measured performance.
+
+---
+
+## ADR-012: Store fine-tuned model on Google Drive (download via gdown)
+**Date:** 2026-05-08
+**Status:** Accepted
+
+**Context:** The fine-tuned model package (`best_model.zip`, ~470 MB) exceeds GitHub's 100 MB file limit and pushes against git-LFS's free-tier 1 GB cap. Need an accessible storage location any team member can pull from any Colab session, ideally with no extra account setup.
+
+**Decision:** Store `best_model.zip` on the team coordinator's Google Drive at link visibility "Anyone with the link". The notebook's bootstrap downloads via `gdown` keyed by Drive `FILE_ID`, unzips into `models/best_model/`, then loads with `transformers.AutoModelForSequenceClassification.from_pretrained()`. Cached after first run (subsequent Colab sessions reuse the local extraction).
+
+**FILE_ID:** `19EIWqmmR4tbJrMyiqKYRT__s_d1n11rW` (project-public; not a secret).
+
+**Alternatives considered:**
+- HuggingFace Hub — most idiomatic; free; supports versioning. Rejected only because the coordinator preferred Drive as already-familiar tool.
+- Git LFS — complicates clone; hits free-tier 1 GB limit on first push; awkward for grader.
+- Commit zipped model to repo — violates GitHub size limit.
+
+**Consequences:**
+- The Drive `FILE_ID` is committed to the notebook (project-public).
+- Bootstrap adds ~1-2 minutes on the first cold Colab session to download + extract; cached after that.
+- If Drive sharing is revoked or the file is deleted, the project breaks; mitigation: coordinator keeps the original `best_model/` folder locally as a backup and documents the upload steps so anyone can re-host.
+- The model is downloadable by anyone with the notebook URL; acceptable for an academic deliverable but worth noting in the README.
