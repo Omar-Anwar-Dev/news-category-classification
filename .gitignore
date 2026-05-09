@@ -23,9 +23,12 @@
 /models/**/*
 !/models/.gitkeep
 
-# Under reports/confusion/ — keep only .gitkeep (PNGs are regeneratable)
+# Under reports/confusion/ — track the delivered confusion-matrix PNGs
+# (one per model + the hi-res RoBERTa copy referenced in docs/report.md);
+# everything else under this folder stays ignored.
 /reports/confusion/**/*
 !/reports/confusion/.gitkeep
+!/reports/confusion/*.png
 
 # =====================================================
 # Secrets

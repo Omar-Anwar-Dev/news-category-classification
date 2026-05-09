@@ -1,9 +1,18 @@
-# News Category Classification — pinned dependencies (Python 3.10+)
-# Tested on Google Colab CPU/GPU runtime and on local Windows venv.
-# Re-run `pip install -r requirements.txt` after pulling.
+# News Category Classification — frozen dependencies (Python 3.10+)
+# Final-delivery freeze for milestone M2.
+# Last verified end-to-end on Colab T4 GPU: 2026-05-09 (S2-T14 integration test).
+# Local install: also verified on Windows 11 + Python 3.10 venv.
+#
+# Two pinning styles are used deliberately:
+#   - Exact-pin (==) for libraries whose API our code depends on directly.
+#     These freeze the version we trained / evaluated against.
+#   - Range (>=,<) for libraries whose pre-installed Colab build must NOT be
+#     downgraded — `pip install` would otherwise replace Colab's numpy 2.x /
+#     torch (with torchvision) and break their ABIs. We constrain the major
+#     version to keep behaviour stable while letting pip skip a downgrade.
 
-# Core scientific stack — numpy/scipy ranges allow Colab's pre-installed
-# numpy 2.x to satisfy them, avoiding the ABI-mismatch downgrade trap.
+# Core scientific stack — Colab pre-installs numpy 2.x; the range avoids
+# the ABI-mismatch downgrade trap.
 numpy>=1.26,<3.0
 scipy>=1.13,<2.0
 pandas>=2.2,<3.0
@@ -16,7 +25,7 @@ joblib==1.4.2
 # NLP preprocessing
 nltk==3.9.1
 
-# Deep learning / embeddings (RoBERTa) — ranges so pip leaves Colab's
+# Deep learning / embeddings (RoBERTa) — range so pip leaves Colab's
 # pre-installed torch + torchvision combination intact (avoids the
 # torchvision::nms ABI mismatch when only torch is reinstalled).
 torch>=2.5,<3.0
@@ -25,7 +34,7 @@ transformers>=4.46,<5.0
 # UI
 gradio==4.44.1
 
-# LLM
+# LLM (per ADR-001: llama-3.3-70b-versatile via Groq Cloud)
 groq==0.13.1
 
 # Visualization
@@ -33,18 +42,18 @@ matplotlib==3.9.2
 seaborn==0.13.2
 wordcloud==1.9.4
 
-# Data sourcing
+# Data sourcing (Kaggle dataset download)
 kaggle==1.6.17
 
-# Google Drive download (for the fine-tuned RoBERTa per ADR-012)
+# Google Drive download (fine-tuned RoBERTa, per ADR-012)
 gdown>=5.2,<6.0
 
-# Config / secrets
+# Config / secrets (loads .env when running locally; Colab Secrets used on Colab)
 python-dotenv==1.0.1
 
 # Utilities
 tqdm==4.67.1
 
-# Dev tooling (CI)
+# Dev tooling (CI: ruff lint + format, pytest 8/8 green)
 pytest==8.3.4
 ruff==0.8.4
