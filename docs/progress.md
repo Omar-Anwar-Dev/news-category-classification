@@ -23,9 +23,30 @@ PRD updates: §1 (42 → 27 classes); §2 success metrics calibrated to actual m
 - [x] **S2-T12** [2026-05-08] (code-complete; runs pending Colab) Similarity retriever cell using the **fine-tuned RoBERTa encoder** (the `.roberta` sub-module of the loaded sequence-classification model). Embeds the train set in batches of 64 under `torch.no_grad()`, mean-pools with attention mask, caches `(N, 768)` `float32` to `data/embeddings/roberta_finetuned.npy` plus a parallel `index.parquet` of `(text, category)`. `top_k(query, k=3)` re-encodes the query and ranks by cosine similarity; smoke test asserts < 200 ms latency target.
 - [x] **S2-T13** [2026-05-08] (code-complete; runs pending Colab) Full Gradio app cell — replaces sprint-1 minimal version. Backend `predict_news_full(headline, description) -> (category, confidence_pct, explanation, similar_md)` predicts via `roberta_model`, calls `explain()` (S2-T11), calls `top_k()` (S2-T12), with try/except graceful fallbacks for both LLM and retrieval. UI: 4 outputs (Textbox, Number, Textbox lines=4, Markdown). 3 pre-baked examples. `demo.launch(share=True)` produces the public URL.
 
+- [x] **S2-T14** [2026-05-09] **Integration test PASSED on a fresh Colab runtime** (T4 GPU, secondary Google account due to GPU quota on the primary). Full notebook ran end-to-end from cold start in **~2 h 37 min** (2:12 AM → 4:49 AM): bootstrap → setup → data → preprocessing (with `raw_text` column) → consolidation → Drive download → features → 5 classical models → RoBERTa eval → comparison → Groq → similarity retrieval → Gradio public link. Public URL printed: `https://5ac245391c9a7b053e.gradio.live` (valid ~72 h). Live demo verified with the headline "Apple unveils new iPhone with improved camera": predicted **SCI_TECH at 98% confidence**, coherent 4-sentence Groq explanation, top-3 similar articles all SCI_TECH about Apple iPhones (cosine similarity 0.972 / 0.961 / 0.956).
+- [x] **S2-T15** [2026-05-09] M1 sign-off. **All 11 MVP features F1-F11** verified against PRD §5 acceptance criteria. **Comparison table has 7 rows × 7 metric columns** (sorted macro-F1 descending), confusion-matrix PNGs saved for each. **Best model: `roberta_finetuned`** with **accuracy 0.7477, macro-F1 0.7102, weighted-F1 0.7562, ROC-AUC 0.9854** — exceeds every PRD §2 target. Tag `m1` cut on `main`.
+
+## Completed Sprints (continued)
+
+### Sprint 2 — Feature Complete (complete, 2026-05-09)
+**Exit criteria — all met:**
+- [x] All 11 MVP features F1-F11 verified against PRD §5
+- [x] 7 trained models persisted, 7 rows in comparison table, 7 confusion-matrix PNGs
+- [x] 27-class label space throughout; sprint-1 LogReg row re-evaluated on 27 classes
+- [x] Notebook runs end-to-end on a fresh Colab without manual intervention (verified S2-T14)
+- [x] Gradio app shows all four output components live (verified S2-T14, public URL active)
+- [x] `docs/progress.md` updated; tag `m1` cut on `main`
+
+**Decisions logged this sprint:** ADR-010 (category consolidation 42→27), ADR-011 (reuse coordinator's fine-tuned RoBERTa, supersedes ADR-003), ADR-012 (Drive storage for model).
+
+**Tested live:** Full pipeline on a fresh Colab T4 GPU. End-to-end inference latency on warm runtime under 5 s. RoBERTa accuracy 0.7477 (vs PRD target 0.70). Best classical (LinearSVC) accuracy 0.6865 (vs PRD target 0.65). Both LLM and similarity-retrieval failure paths exercised — UI never crashed.
+
+**Notable surprises:**
+1. The fine-tuned RoBERTa was originally trained on **lightly-cleaned** text (URL strip + whitespace normalisation only). The first attempt at S2-T8 fed it **heavily NLTK-cleaned** text and got accuracy 0.5764 (well below target). Root cause identified by reading the prior project's `app_gradio.py` — its `clean_text` is much lighter than ours. Fix: store both `text` (heavy clean for classical TF-IDF) and `raw_text` (light clean for RoBERTa) in `cleaned_df`. Pushed as commit `6fbdba1`. After fix, accuracy recovered to **0.7477**.
+2. Colab free-tier GPU quota hit on the primary account after first ~3 h session. Resolved by switching to a secondary Google account via Incognito. R1 (Colab GPU session limits) materialised but was mitigated within 30 min.
+
 ## In Progress
-- [ ] **S2-T14** Integration test on Colab (full notebook end-to-end on a fresh runtime)
-- [ ] **S2-T15** M1 sign-off — checklist + tag `m1` (after S2-T14)
+_none — sprint 2 complete._
 
 ## Completed Sprints
 
