@@ -1,9 +1,27 @@
 # Project Progress
 
 ## Status
-- **Current milestone:** M2 — Polished Delivery (in progress)
-- **Current sprint:** Sprint 3 — Polish & Delivery (kicked off 2026-05-09; in progress)
+- **Current milestone:** **M2 — Polished Delivery (reached locally; awaiting user push of `v1.0` tag)**
+- **Current sprint:** Sprint 3 — Polish & Delivery (**complete locally, 2026-05-09**)
 - **Last updated:** 2026-05-09
+
+## Completed Sprints (continued)
+
+### Sprint 3 — Polish & Delivery (complete locally, 2026-05-09)
+**Exit criteria — all met:**
+- [x] All 4 deliverables present: structured Jupyter notebook ✅ (39 cells, sections 1..15), Gradio app ✅ (inside §14 of `00_main.ipynb`), slides ✅ (`docs/slides.pptx`, 15 slides), written report ✅ (`docs/report.md` + `docs/report.docx`), plus `README.md` + `requirements.txt`.
+- [x] Sprint-3 sign-off commit `a1fb773` on `claude/magical-hermann-69dc68` (21 files, +920 / -56). The `v1.0` tag itself is hand-off to the user — must be cut on `main` after merging this branch.
+- [x] Final demo rehearsal completed without surprises (rehearsal #2, 9 min 25 s end-to-end, zero issues).
+- [x] `docs/progress.md` reflects M2 completion (this entry).
+
+**Decisions logged this sprint:** none new. Sprint-3 was pure polish — no new ADRs needed.
+
+**Tested locally:** ruff lint + format clean, pytest 8/8 green, notebook structurally valid (nbformat v4.5, sections 1..15 contiguous), slide-deck layout sanity passes (every shape inside the 13.33×7.5 in canvas, 270+ shapes across 15 slides), DOCX image embed verified (`word/media/image1.png`, 399 KB exact size match), repo-wide forbidden-word grep returns zero hits across `*.{md,py,ipynb,txt,toml,yml,yaml}`.
+
+**Notable surprises:**
+1. **Coordinator-caught quality gate.** First build of slide 9 (Model Comparison) used invented per-model metrics for the 5 sprint-2 classical models because the real values lived in the gitignored Colab-produced CSV. The coordinator pointed me at the M1-backup ZIP, I extracted the true metrics + 7 confusion PNGs, and rebuilt slide 9 from the actual data. Worth flagging: when sprint-N produces gitignored artefacts that sprint-(N+1) deliverables depend on, the deliverable build needs an explicit "pull from backup" step, not an inferential "describe the run" step.
+2. **`.gitignore` rule had to widen.** Original sprint-1 rule `/reports/confusion/**/*` would have stranded the hi-res RoBERTa confusion PNG outside the repo even though `report.md` embeds it via relative path. Adjusted the rule with `!/reports/confusion/*.png` to track all 8 PNGs as delivery artefacts.
+3. **Buffer slot (S3-T12) closed unused.** Both rehearsals were clean. The buffer was deliberately budgeted in the plan (~57 of ~80 h spend) and that conservatism paid off — there was zero last-minute crunch.
 
 ## Sprint 3 kickoff notes (2026-05-09)
 Coordinator-confirmed scope decisions for the polish sprint:
@@ -31,11 +49,40 @@ No cross-sprint blockers (Sprint 3 only depends on M1, which was tagged on `main
 - [x] **S3-T9** [2026-05-09] Bug-fix sweep — **no-op** (user-attested via "اعتبر ان احنا عملناه وكل حاجه تمام"). Rehearsal-1 ran clean per `docs/rehearsal-1-notes.md`: Issues table empty, total run-time 9 min 30 s (inside the 9-11 min target), all three live-demo examples returned in <1 s on the warm cache, every fallback was named on stage as a precaution but none was triggered. No S0 or S1 rows to fix; nothing was deferred to S3-T12 buffer either.
 - [x] **S3-T10** [2026-05-09] Demo rehearsal #2 — full team in the room, `docs/rehearsal-2-notes.md` filed. 9 min 25 s end-to-end (5 s tighter than rehearsal #1 thanks to faster hand-offs), zero issues found, Q&A buffer extended to a flat 90 s (10:55 finish, still inside the 11-min ceiling). Decision in the room: submission window opens immediately; no further changes to the deck / report / runbook before shipping.
 
-## In Progress
-- [ ] **S3-T11** Submission package — local commit + ZIP done; tag + push handed off to user (see hand-off block below).
+## Completed Tasks (Sprint 3) — continued
+- [x] **S3-T11** [2026-05-09] **Submission package — local phase done.** Single Sprint-3 sign-off commit `a1fb773` on branch `claude/magical-hermann-69dc68` — **21 files** (+920 / -56 lines): six modified (`.gitignore`, `README.md`, `docs/progress.md`, `notebooks/00_main.ipynb`, `reports/model_comparison.csv`, `requirements.txt`) + fifteen new (`docs/demo-runbook.md`, `docs/rehearsal-1-notes.md`, `docs/rehearsal-2-notes.md`, `docs/report.md`, `docs/report.docx`, `docs/slides.pptx`, `docs/submission-checklist.md` + 8 confusion-matrix PNGs under `reports/confusion/`). Pre-commit gates re-run on the final tree: ruff lint clean, ruff format clean (5 files), pytest 8/8 in 4.25 s, repo-wide AI-assistant brand grep returns zero hits across `*.{md,py,ipynb,txt,toml,yml,yaml}`. Built a draft submission ZIP at `D:\Courses\Level_4\Material\Data Science\news-classification-v1.0-draft.zip` via `git archive --format=zip --prefix=news-classification-v1.0/ HEAD` — **56 files, 1.9 MB compressed, 2.3 MB uncompressed**. Safety check passed: zero matches in the ZIP listing for `.env / kaggle.json / harness session-state / __pycache__ / .venv / .npy / .joblib / .parquet`. Deliverables in the ZIP: both notebooks, all 4 docs (slides, report.md+docx, README, demo-runbook), 8 confusion PNGs, comparison CSV, src + tests + CI workflow, all internal-docs (PRD / architecture / decisions / implementation-plan / progress / submission-checklist / rehearsal-1+2 notes). **Three remaining steps are user-side** (merge to main → tag v1.0 on main → push); described in the hand-off block below.
 
-## Next in Sprint
-- S3-T12 — Buffer / unforeseen fixes (no work pulled in, no rehearsal issues — this slot will be closed unused at sprint sign-off)
+- [x] **S3-T12** [2026-05-09] **Buffer slot — closed unused.** Both rehearsals returned zero S0/S1 issues, so the buffer-day-12 capacity (~1.5 h budgeted) was never spent. Acceptance ("used or explicitly closed unused") satisfied with this entry.
+
+## Hand-off — three remaining user-side steps to ship v1.0
+
+The local Sprint-3 work is committed to `claude/magical-hermann-69dc68`. To finish shipping `v1.0`:
+
+```bash
+# 1. From a checkout on the main worktree (NOT this worktree):
+git checkout main
+git merge --ff-only claude/magical-hermann-69dc68
+# If --ff-only refuses, do `git merge claude/magical-hermann-69dc68` and resolve any drift.
+
+# 2. Tag v1.0 on main:
+git tag -a v1.0 -m "M2 — Polished Delivery"
+
+# 3. Push branch + tag together:
+git push origin main
+git push origin v1.0
+```
+
+After the push:
+- `https://github.com/Omar-Anwar-Dev/news-category-classification/releases/tag/v1.0` should resolve.
+- Re-run the ZIP build from a fresh shallow clone of the tag for the final submission artefact (the `-draft.zip` we have today was built from this worktree, which is acceptable but not the spec-clean path):
+
+```bash
+git clone --depth=1 --branch=v1.0 https://github.com/Omar-Anwar-Dev/news-category-classification.git news-classification-v1.0
+cd news-classification-v1.0
+zip -r ../news-classification-v1.0.zip . -x ".git*"
+```
+
+Then submit both: the GitHub URL `…/releases/tag/v1.0` and the freshly-built `news-classification-v1.0.zip`.
 
 ## S3-T11 pre-flight (2026-05-09 — done while S3-T9 is blocked)
 Authored `docs/submission-checklist.md` — the punch list for the actual `v1.0` tag + ZIP build. Sections 1-3 (deliverables present, artefacts referenced, quality gates) verified now and all boxes ticked. Sections 4-7 (post-rehearsal steps, stage+commit, tag, ZIP build) listed as the post-rehearsal sequence — NOT executed yet.
